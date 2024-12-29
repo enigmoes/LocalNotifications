@@ -7,19 +7,6 @@
 
 import SwiftUI
 
-struct AlertView: Identifiable
-{
-    enum AlertView {
-        case aTime
-        case aDate
-        case aEmpty
-    }
-    
-    let id: AlertView
-    let title: String
-    let message: String
-}
-
 struct ContentView: View
 {
     // For schedule by date
@@ -36,6 +23,8 @@ struct ContentView: View
     @FocusState var isInputActive: Bool
     
     @ObservedObject var notify = NotificationHandler()
+    
+    @State private var isPresented: Bool = false
     
     var body: some View {
         NavigationView {
@@ -88,7 +77,7 @@ struct ContentView: View
                         .focused($isInputActive)
                     
                     HStack {
-                        Slider(value: $selectedInterval, in: 5...30, step: 1) {
+                        Slider(value: $selectedInterval, in: 5...60, step: 1) {
                             Text("Interval")
                         }
                         .accessibilityValue("\(Int(selectedInterval)) seconds")
@@ -130,24 +119,31 @@ struct ContentView: View
                     .padding(5)
                     .buttonStyle(.borderedProminent)
                 }
-                Section(header: Text("Not working?")) {
-                    Button("Request permissions") {
-                        notify.askPermission()
-                    }
-                }
+                // Section(header: Text("Not working?")) {
+                //     Button("Request permissions") {
+                //         notify.askPermission()
+                //     }
+                // }
             }
             .navigationTitle(Text("Notifications"))
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button("Reset") {
                         // Reset controls
                         self.dateTitle = ""
                         self.dateMessage = ""
                         self.selectedDate = Date()
-                        
+                    
                         self.intTitle = ""
                         self.intMessage = ""
                         self.selectedInterval = 5
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Add", systemImage: "plus.circle") {
+                        isPresented.toggle()
+                    }.sheet(isPresented: $isPresented) {
+                        ScheduleView(isPresented: $isPresented)
                     }
                 }
                 ToolbarItemGroup(placement: .keyboard) {

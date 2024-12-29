@@ -15,7 +15,9 @@ class NotificationHandler: ObservableObject
     
     func askPermission() {
         notificationCenter.requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
-            if (!success) {
+            if (success) {
+                self.showNotifications()
+            } else if (!success) {
                 print("Permiso denegado!")
             } else if let error = error {
                 print(error.localizedDescription)
@@ -49,6 +51,8 @@ class NotificationHandler: ObservableObject
                             return
                         }
                     }
+                    
+                    self.showNotifications()
                 } else {
                     self.askPermission()
                 }
@@ -60,5 +64,20 @@ class NotificationHandler: ObservableObject
         let formatter = DateFormatter()
         formatter.dateFormat = "dd/MM/yyyy 'a las' HH:mm"
         return formatter.string(from: date)
+    }
+    
+    func showNotifications() {
+        notificationCenter.getPendingNotificationRequests(completionHandler: { requests in
+            for request in requests {
+                if let trigger = request.trigger as? UNCalendarNotificationTrigger {
+                    let calendar = Calendar.current.date(from: trigger.dateComponents)!
+                    print(calendar)
+                } else if let trigger = request.trigger as? UNTimeIntervalNotificationTrigger {
+                    let calendar = Calendar.current.date(byAdding: .second, value: Int(trigger.timeInterval), to: Date())!
+                    print(calendar)
+                }
+                
+            }
+        })
     }
 }
