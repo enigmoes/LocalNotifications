@@ -9,9 +9,20 @@ import SwiftUI
 import Foundation
 import UserNotifications
 
+// Estructura para representar una notificación pendiente
+struct PendingNotification: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let body: String
+    let scheduledDate: Date
+    let type: String // "date" o "time"
+}
+
 class NotificationHandler: ObservableObject
 {
     let notificationCenter = UNUserNotificationCenter.current()
+    
+    @Published var pendingNotifications: [PendingNotification] = []
     
     func askPermission() {
         notificationCenter.requestAuthorization(options: [.alert, .badge, .sound]) { success, error in
@@ -68,16 +79,44 @@ class NotificationHandler: ObservableObject
     
     func showNotifications() {
         notificationCenter.getPendingNotificationRequests(completionHandler: { requests in
-            for request in requests {
-                if let trigger = request.trigger as? UNCalendarNotificationTrigger {
-                    let calendar = Calendar.current.date(from: trigger.dateComponents)!
-                    print(calendar)
-                } else if let trigger = request.trigger as? UNTimeIntervalNotificationTrigger {
-                    let calendar = Calendar.current.date(byAdding: .second, value: Int(trigger.timeInterval), to: Date())!
-                    print(calendar)
+            DispatchQueue.main.async {
+                self.pendingNotifications = requests.compactMap { request in
+                    var scheduledDate = Date()
+                    var type = "unknown"
+                    
+                    if let trigger = request.trigger as? UNCalendarNotificationTrigger {
+                        if let date = Calendar.current.date(from: trigger.dateComponents) {
+                            scheduledDate = date
+                            type = "date"
+                        }
+                    } else if let trigger = request.trigger as? UNTimeIntervalNotificationTrigger {
+                        scheduledDate = Calendar.current.date(byAdding: .second, value: Int(trigger.timeInterval), to: Date()) ?? Date()
+                        type = "time"
+                    }
+                    
+                    return PendingNotification(
+                        id: request.identifier,
+                        title: request.content.title,
+                        body: request.content.body,
+                        scheduledDate: scheduledDate,
+                        type: type
+                    )
                 }
-                
             }
         })
+    }
+    
+    // Método para eliminar una notificación específica
+    func removeNotification(withId id: String) {
+        notificationCenter.removePendingNotificationRequests(withIdentifiers: [id])
+        // Actualizar la lista después de eliminar
+        showNotifications()
+    }
+    
+    // Método para eliminar todas las notificaciones
+    func removeAllNotifications() {
+        notificationCenter.removeAllPendingNotificationRequests()
+        // Actualizar la lista después de eliminar
+        showNotifications()
     }
 }

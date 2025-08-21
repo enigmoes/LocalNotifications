@@ -9,165 +9,120 @@ import SwiftUI
 
 struct ContentView: View
 {
-    // For schedule by date
-    @State private var dateTitle = ""
-    @State private var dateMessage = ""
-    @State private var selectedDate = Date()
-    // For schedule by interval
-    @State private var intTitle = ""
-    @State private var intMessage = ""
-    @State private var selectedInterval: Float = 5
-    
-    @State private var alertInfo: AlertView?
-    
-    @FocusState var isInputActive: Bool
-    
     @ObservedObject var notify = NotificationHandler()
-    
     @State private var isPresented: Bool = false
+    @State private var showClearAllConfirmation: Bool = false
     
     var body: some View {
         NavigationView {
-            Form {
-                Section(header: Text("Schedule Notification")) {
-                    TextField("Title:", text: $dateTitle)
-                        .focused($isInputActive)
-                    TextField("Message:", text: $dateMessage)
-                        .focused($isInputActive)
-                    
-                    DatePicker("Date:", selection: $selectedDate, in: Date()...)
-                    
-                    Button("Schedule") {
-                        if (!self.dateTitle.isEmpty && !self.dateMessage.isEmpty) {
-                            notify.sendNotification(
-                                date: selectedDate,
-                                type: "date",
-                                title: dateTitle,
-                                body: dateMessage)
+            List {
+                if notify.pendingNotifications.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "bell.slash")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        
+                        Text("No Scheduled Notifications")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        
+                        Text("Tap the + button to schedule your first notification")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                } else {
+                    ForEach(notify.pendingNotifications) { notification in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(notification.title)
+                                    .font(.headline)
+                                    .lineLimit(1)
+                                Spacer()
+                                Image(systemName: notification.type == "date" ? "calendar" : "clock")
+                                    .foregroundColor(.secondary)
+                                    .font(.caption)
+                            }
                             
-                            alertInfo = AlertView(
-                                id: .aTime,
-                                title: "Notification schedule",
-                                message: "For \(notify.formattedDate(date: selectedDate))"
-                            )
-                        } else {
-                            if (self.dateTitle.isEmpty) {
-                                alertInfo = AlertView(
-                                    id: .aEmpty,
-                                    title: "Warning",
-                                    message: "Title cannot be empty"
-                                )
-                            } else if (self.dateMessage.isEmpty) {
-                                alertInfo = AlertView(
-                                    id: .aEmpty,
-                                    title: "Warning",
-                                    message: "Message cannot be empty"
-                                )
+                            Text(notification.body)
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                            
+                            HStack {
+                                Text("Scheduled for:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(notify.formattedDate(date: notification.scheduledDate))
+                                    .font(.caption)
+                                    .foregroundColor(.primary)
                             }
                         }
+                        .padding(.vertical, 2)
                     }
-                    .padding(5)
-                    .tint(.orange)
-                    .buttonStyle(.borderedProminent)
-                }
-                Section(header: Text("Notification In \(Int(selectedInterval)) Seconds")) {
-                    TextField("Title:", text: $intTitle)
-                        .focused($isInputActive)
-                    TextField("Message:", text: $intMessage)
-                        .focused($isInputActive)
-                    
-                    HStack {
-                        Slider(value: $selectedInterval, in: 5...60, step: 1) {
-                            Text("Interval")
-                        }
-                        .accessibilityValue("\(Int(selectedInterval)) seconds")
-                        Spacer()
-                        Text("\(Int(selectedInterval)) seconds")
-                            .accessibilityHidden(true)
-                    }
-                    
-                    Button("Schedule In \(Int(selectedInterval)) seconds") {
-                        if (!self.intTitle.isEmpty && !self.intMessage.isEmpty) {
-                            notify.sendNotification(
-                                date: Date(),
-                                type: "time",
-                                timeInverval: Double(selectedInterval),
-                                title: intTitle,
-                                body: intMessage)
-                            
-                            alertInfo = AlertView(
-                                id: .aTime,
-                                title: "Notification schedule",
-                                message: "On \(Int(selectedInterval)) seconds"
-                            )
-                        } else {
-                            if (self.intTitle.isEmpty) {
-                                alertInfo = AlertView(
-                                    id: .aEmpty,
-                                    title: "Warning",
-                                    message: "Title cannot be empty"
-                                )
-                            } else if (self.intMessage.isEmpty) {
-                                alertInfo = AlertView(
-                                    id: .aEmpty,
-                                    title: "Warning",
-                                    message: "Message cannot be empty"
-                                )
-                            }
-                        }
-                    }
-                    .padding(5)
-                    .buttonStyle(.borderedProminent)
-                }
-                // Section(header: Text("Not working?")) {
-                //     Button("Request permissions") {
-                //         notify.askPermission()
-                //     }
-                // }
-            }
-            .navigationTitle(Text("Notifications"))
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Reset") {
-                        // Reset controls
-                        self.dateTitle = ""
-                        self.dateMessage = ""
-                        self.selectedDate = Date()
-                    
-                        self.intTitle = ""
-                        self.intMessage = ""
-                        self.selectedInterval = 5
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Add", systemImage: "plus.circle") {
-                        isPresented.toggle()
-                    }.sheet(isPresented: $isPresented) {
-                        ScheduleView(isPresented: $isPresented)
-                    }
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        isInputActive = false
-                    }
+                    .onDelete(perform: deleteNotifications)
                 }
             }
-            .alert(item: $alertInfo, content: { info in
-                Alert(
-                    title: Text(info.title),
-                    message: Text(info.message)
-                )
-            })
+            .refreshable {
+                notify.showNotifications()
+            }
+            .navigationBarTitle(Text("Notifications"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(content: toolbarContent)
         }
         .onAppear() {
             notify.askPermission()
+            notify.showNotifications()
+        }
+    }
+    
+    // Función para eliminar notificaciones seleccionadas
+    private func deleteNotifications(offsets: IndexSet) {
+        for index in offsets {
+            let notification = notify.pendingNotifications[index]
+            notify.removeNotification(withId: notification.id)
+        }
+    }
+    
+    // Función para construir el toolbar
+    @ToolbarContentBuilder
+    private func toolbarContent() -> some ToolbarContent {
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button("Clear All") {
+                showClearAllConfirmation = true
+            }
+            .foregroundColor(.red)
+            .opacity(notify.pendingNotifications.isEmpty ? 0 : 1)
+            .disabled(notify.pendingNotifications.isEmpty)
+            .alert("Clear All Notifications", isPresented: $showClearAllConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear All", role: .destructive) {
+                    notify.removeAllNotifications()
+                }
+            } message: {
+                Text("Are you sure you want to remove all scheduled notifications? This action cannot be undone.")
+            }
+        }
+        
+        ToolbarItem(placement: .navigationBarTrailing) {
+            Button("Add", systemImage: "plus.circle") {
+                isPresented.toggle()
+            }.sheet(isPresented: $isPresented) {
+                ScheduleView(isPresented: $isPresented)
+                    .onDisappear {
+                        // Actualizar la lista cuando se cierre el sheet
+                        notify.showNotifications()
+                    }
+            }
         }
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
-    }
+#Preview {
+    ContentView()
 }
