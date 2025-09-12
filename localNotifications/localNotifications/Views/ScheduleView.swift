@@ -143,14 +143,16 @@ struct ScheduleView: View
             .navigationBarTitle(Text("Schedule"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close", systemImage: "xmark.circle.fill") {
                         self.isPresented = false
                     }
+                    .font(.system(size: 24))
+                    .foregroundColor(.gray)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("Close") {
+                    Button("Ok") {
                         isInputActive = false
                     }
                 }

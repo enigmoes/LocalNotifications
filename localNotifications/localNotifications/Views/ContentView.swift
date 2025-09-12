@@ -17,22 +17,26 @@ struct ContentView: View
         NavigationView {
             List {
                 if notify.pendingNotifications.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "bell.slash")
-                            .font(.system(size: 48))
-                            .foregroundColor(.secondary)
-                        
-                        Text("No Scheduled Notifications")
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                        
-                        Text("Tap the + button to schedule your first notification")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
+                    GeometryReader { geometry in
+                        VStack(spacing: 16) {
+                            Image(systemName: "bell.slash")
+                                .font(.system(size: 48))
+                                .foregroundColor(.secondary)
+                            
+                            Text("No Scheduled Notifications")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                            
+                            Text("Tap the + button to schedule your first notification")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(height: max(UIScreen.main.bounds.height * 0.6, 300))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                 } else {
@@ -64,6 +68,16 @@ struct ContentView: View
                             }
                         }
                         .padding(.vertical, 2)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                let notification = notify.pendingNotifications.first { $0.id == notification.id }
+                                if let notificationToDelete = notification {
+                                    notify.removeNotification(withId: notificationToDelete.id)
+                                }
+                            } label: {
+                                Label("Delete", systemImage: "trash.fill")
+                            }
+                        }
                     }
                     .onDelete(perform: deleteNotifications)
                 }
@@ -93,7 +107,7 @@ struct ContentView: View
     @ToolbarContentBuilder
     private func toolbarContent() -> some ToolbarContent {
         ToolbarItem(placement: .navigationBarLeading) {
-            Button("Clear All") {
+            Button("Clear All", systemImage: "trash") {
                 showClearAllConfirmation = true
             }
             .foregroundColor(.red)
