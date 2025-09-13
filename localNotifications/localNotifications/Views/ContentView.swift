@@ -110,7 +110,7 @@ struct ContentView: View
             Button("Clear All", systemImage: "trash") {
                 showClearAllConfirmation = true
             }
-            .foregroundColor(.red)
+            .tint(.red)
             .opacity(notify.pendingNotifications.isEmpty ? 0 : 1)
             .disabled(notify.pendingNotifications.isEmpty)
             .alert("Clear All Notifications", isPresented: $showClearAllConfirmation) {

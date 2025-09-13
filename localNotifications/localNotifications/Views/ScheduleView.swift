@@ -148,7 +148,7 @@ struct ScheduleView: View
                         self.isPresented = false
                     }
                     .font(.system(size: 24))
-                    .foregroundColor(.gray)
+                    .tint(.gray)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
